@@ -1,0 +1,165 @@
+@startuml Football Ticket Sales and Resale System - Class Diagram
+
+' Основные классы системы
+
+class User {
+  - id: UUID
+  - username: String
+  - email: String
+  - password: String
+  - role: String
+  - createdAt: DateTime
+  + register()
+  + login()
+  + updateProfile()
+}
+
+class Match {
+  - id: UUID
+  - homeTeam: String
+  - awayTeam: String
+  - date: DateTime
+  - venue: String
+  - totalTickets: Integer
+  - availableTickets: Integer
+  - basePrice: BigDecimal
+  + getMatchDetails()
+  + updateAvailability()
+}
+
+class Ticket {
+  - id: UUID
+  - matchId: UUID
+  - originalOwnerId: UUID
+  - currentOwnerId: UUID
+  - seatNumber: String
+  - originalPrice: BigDecimal
+  - status: TicketStatus
+  - isResalable: Boolean
+  - resaleCount: Integer
+  - purchasedAt: DateTime
+  + purchase()
+  + reserve()
+  + cancel()
+  + enableResale()
+}
+
+enum TicketStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  FOR_RESALE
+  RESOLD_RESERVED
+  RESOLD
+  CANCELLED
+}
+
+class Listing {
+  - id: UUID
+  - ticketId: UUID
+  - sellerId: UUID
+  - resalePrice: BigDecimal
+  - listingStatus: ListingStatus
+  - description: String
+  - listedAt: DateTime
+  - soldAt: DateTime
+  - commission: BigDecimal
+  + createListing()
+  + updatePrice()
+  + cancelListing()
+  + completeSale()
+}
+
+enum ListingStatus {
+  ACTIVE
+  RESERVED
+  COMPLETED
+  CANCELLED
+}
+
+class ResaleTransaction {
+  - id: UUID
+  - listingId: UUID
+  - buyerId: UUID
+  - sellerId: UUID
+  - ticketId: UUID
+  - amount: BigDecimal
+  - commission: BigDecimal
+  - sellerPayout: BigDecimal
+  - transactionDate: DateTime
+  - paymentStatus: String
+  + processTransaction()
+  + refund()
+}
+
+class Payment {
+  - id: UUID
+  - userId: UUID
+  - amount: BigDecimal
+  - paymentMethod: String
+  - paymentToken: String
+  - status: String
+  - transactionType: String
+  - createdAt: DateTime
+  + processPayment()
+  + refund()
+}
+
+class Notification {
+  - id: UUID
+  - userId: UUID
+  - type: String
+  - subject: String
+  - message: String
+  - sentAt: DateTime
+  - status: String
+  + send()
+}
+
+' Связи между классами
+
+User "1" -- "0..*" Ticket : "purchases/owns"
+User "1" -- "0..*" Listing : "creates (as seller)"
+User "1" -- "0..*" ResaleTransaction : "participates (buyer/seller)"
+User "1" -- "0..*" Payment : "makes"
+User "1" -- "0..*" Notification : "receives"
+
+Match "1" -- "0..*" Ticket : "has"
+
+Ticket "1" -- "1" TicketStatus : "has status"
+Ticket "1" -- "0..1" Listing : "listed for resale"
+Ticket "1" -- "0..*" ResaleTransaction : "involved in"
+
+Listing "1" -- "1" ListingStatus : "has status"
+Listing "1" -- "0..1" ResaleTransaction : "results in"
+
+ResaleTransaction "1" -- "1" Payment : "processed via"
+
+note right of Ticket
+  Билет может быть перепродан
+  несколько раз. Поле resaleCount
+  отслеживает количество перепродаж.
+  
+  originalOwnerId - первый покупатель
+  currentOwnerId - текущий владелец
+end note
+
+note right of Listing
+  Объявление о перепродаже.
+  Продавец может установить цену
+  выше или ниже оригинальной.
+  
+  Платформа взимает комиссию
+  с каждой перепродажи.
+end note
+
+note right of ResaleTransaction
+  Транзакция перепродажи между
+  двумя пользователями.
+  
+  amount = цена перепродажи
+  commission = комиссия платформы
+  sellerPayout = amount - commission
+end note
+
+@enduml

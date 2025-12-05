@@ -1,0 +1,33 @@
+@startuml C4_Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+TITLE Система продажи и перепродажи билетов на футбол - Контейнеры (C4 Уровень 2)
+
+Person(buyer, "Покупатель", "Просматривает матчи, покупает и перепродает билеты.")
+Person(seller, "Продавец", "Выставляет купленные билеты на перепродажу.")
+Person(admin, "Администратор", "Управляет расписанием матчей и системой.")
+
+System_Ext(paymentGateway, "Платежный шлюз", "Обрабатывает кредитные карты и платежи между пользователями.")
+System_Ext(emailService, "Сервис Email-уведомлений", "Отправляет подтверждения и уведомления.")
+System_Ext(matchDataProvider, "Поставщик данных о матчах", "Предоставляет расписание и информацию о матчах.")
+
+System_Boundary(ticketSystem, "Система продажи и перепродажи билетов") {
+    Container(webApp, "Web Application", "React SPA", "Предоставляет пользовательский интерфейс для покупки и перепродажи билетов.")
+    Container(apiApp, "API Application", "Java Spring Boot", "Предоставляет REST API для управления билетами, матчами и перепродажей.")
+    ContainerDb(database, "База данных", "MySQL", "Хранит информацию о пользователях, билетах, матчах и объявлениях о перепродаже.")
+}
+
+Rel(buyer, webApp, "Использует", "HTTPS")
+Rel(seller, webApp, "Использует", "HTTPS")
+Rel(admin, webApp, "Использует", "HTTPS")
+
+Rel(webApp, apiApp, "Выполняет API-запросы к", "JSON/HTTPS")
+
+Rel(apiApp, database, "Читает и записывает данные в", "JDBC")
+Rel(apiApp, paymentGateway, "Обрабатывает платежи через", "JSON/HTTPS")
+Rel(apiApp, emailService, "Отправляет уведомления через", "JSON/HTTPS")
+Rel(apiApp, matchDataProvider, "Получает данные о матчах из", "JSON/HTTPS")
+
+@enduml

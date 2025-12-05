@@ -1,0 +1,64 @@
+@startuml C4_Components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+TITLE API Application - Компоненты (C4 Уровень 3)
+
+Container(webApp, "Web Application", "React SPA", "Предоставляет пользовательский интерфейс...")
+ContainerDb(database, "База данных", "MySQL", "Хранит данные...")
+System_Ext(paymentGateway, "Платежный шлюз", "Обрабатывает платежи...")
+System_Ext(emailService, "Сервис Email-уведомлений", "Отправляет уведомления...")
+System_Ext(matchDataProvider, "Поставщик данных о матчах", "Предоставляет данные о матчах...")
+
+System_Boundary(apiApp, "API Application") {
+    Component(matchController, "Match Controller", "Spring REST Controller", "API для получения информации о матчах.")
+    Component(ticketController, "Ticket Controller", "Spring REST Controller", "API для покупки билетов.")
+    Component(resaleController, "Resale Controller", "Spring REST Controller", "API для перепродажи билетов.")
+
+    Component(matchService, "Match Service", "Spring Service", "Логика управления матчами.")
+    Component(ticketService, "Ticket Service", "Spring Service", "Логика управления билетами.")
+    Component(listingService, "Listing Service", "Spring Service", "Логика управления объявлениями о перепродаже.")
+    Component(resaleService, "Resale Service", "Spring Service", "Логика обработки сделок перепродажи.")
+    Component(userService, "User Service", "Spring Service", "Логика управления пользователями.")
+
+    Component(matchDataService, "Match Data Service", "Spring Service", "Интеграция с поставщиком данных о матчах.")
+    Component(paymentService, "Payment Service", "Spring Service", "Интеграция с платежным шлюзом.")
+    Component(notificationService, "Notification Service", "Spring Service", "Интеграция с сервисом уведомлений.")
+}
+
+Rel(webApp, matchController, "Использует", "JSON/HTTPS")
+Rel(webApp, ticketController, "Использует", "JSON/HTTPS")
+Rel(webApp, resaleController, "Использует", "JSON/HTTPS")
+
+Rel(matchController, matchService, "Использует")
+Rel(ticketController, ticketService, "Использует")
+Rel(ticketController, userService, "Использует")
+Rel(resaleController, listingService, "Использует")
+Rel(resaleController, resaleService, "Использует")
+Rel(resaleController, userService, "Использует")
+
+Rel(matchService, database, "Читает из", "JDBC")
+Rel(matchService, matchDataService, "Использует")
+
+Rel(ticketService, database, "Читает/пишет в", "JDBC")
+Rel(ticketService, paymentService, "Использует")
+Rel(ticketService, notificationService, "Использует")
+
+Rel(listingService, database, "Читает/пишет в", "JDBC")
+Rel(listingService, ticketService, "Использует")
+Rel(listingService, notificationService, "Использует")
+
+Rel(resaleService, database, "Читает/пишет в", "JDBC")
+Rel(resaleService, ticketService, "Использует")
+Rel(resaleService, listingService, "Использует")
+Rel(resaleService, paymentService, "Использует")
+Rel(resaleService, notificationService, "Использует")
+
+Rel(userService, database, "Читает/пишет в", "JDBC")
+
+Rel(matchDataService, matchDataProvider, "Получает данные от", "JSON/HTTPS")
+Rel(paymentService, paymentGateway, "Отправляет запросы в", "JSON/HTTPS")
+Rel(notificationService, emailService, "Отправляет email через", "JSON/HTTPS")
+
+@enduml

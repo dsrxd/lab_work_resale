@@ -1,0 +1,605 @@
+openapi: 3.0.0
+info:
+  title: Football Ticket Sales and Resale API
+  version: 2.0.0
+  description: |
+    API для управления продажей и перепродажей билетов на футбольные матчи.
+    Поддерживает покупку билетов от организатора и перепродажу между пользователями.
+
+servers:
+  - url: /api/v1
+    description: Main API Server
+
+paths:
+  # ==================== MATCHES ====================
+  /matches:
+    get:
+      summary: Получить список всех предстоящих матчей
+      operationId: listMatches
+      tags:
+        - Matches
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Фильтр по дате матча
+        - name: team
+          in: query
+          schema:
+            type: string
+          description: Фильтр по команде
+      responses:
+        '200':
+          description: Список матчей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+
+  /matches/{matchId}:
+    get:
+      summary: Получить детали конкретного матча
+      operationId: getMatch
+      tags:
+        - Matches
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Детали матча
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '404':
+          description: Матч не найден
+
+  # ==================== TICKETS ====================
+  /tickets:
+    post:
+      summary: Купить новый билет от организатора
+      operationId: purchaseTicket
+      tags:
+        - Tickets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketPurchaseRequest'
+      responses:
+        '201':
+          description: Билет успешно куплен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Неверный запрос или билет недоступен
+        '402':
+          description: Ошибка оплаты
+
+  /tickets/{ticketId}:
+    get:
+      summary: Получить информацию о билете
+      operationId: getTicket
+      tags:
+        - Tickets
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Информация о билете
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          description: Билет не найден
+
+  /users/{userId}/tickets:
+    get:
+      summary: Получить все билеты пользователя
+      operationId: getUserTickets
+      tags:
+        - Tickets
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Список билетов пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+
+  # ==================== LISTINGS (RESALE) ====================
+  /listings:
+    get:
+      summary: Получить все активные объявления о перепродаже
+      operationId: listResaleListings
+      tags:
+        - Resale
+      parameters:
+        - name: matchId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Фильтр по матчу
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+            format: float
+          description: Максимальная цена
+      responses:
+        '200':
+          description: Список объявлений о перепродаже
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Listing'
+
+    post:
+      summary: Создать объявление о перепродаже билета
+      operationId: createListing
+      tags:
+        - Resale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateListingRequest'
+      responses:
+        '201':
+          description: Объявление успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          description: Неверный запрос или билет не может быть перепродан
+        '403':
+          description: Пользователь не является владельцем билета
+
+  /listings/{listingId}:
+    get:
+      summary: Получить детали объявления о перепродаже
+      operationId: getListing
+      tags:
+        - Resale
+      parameters:
+        - name: listingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Детали объявления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '404':
+          description: Объявление не найдено
+
+    put:
+      summary: Обновить цену объявления
+      operationId: updateListing
+      tags:
+        - Resale
+      parameters:
+        - name: listingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateListingRequest'
+      responses:
+        '200':
+          description: Объявление обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '403':
+          description: Недостаточно прав
+        '404':
+          description: Объявление не найдено
+
+    delete:
+      summary: Отменить объявление о перепродаже
+      operationId: cancelListing
+      tags:
+        - Resale
+      parameters:
+        - name: listingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Объявление отменено
+        '403':
+          description: Недостаточно прав
+        '404':
+          description: Объявление не найдено
+
+  /listings/{listingId}/purchase:
+    post:
+      summary: Купить билет с перепродажи
+      operationId: purchaseResaleTicket
+      tags:
+        - Resale
+      parameters:
+        - name: listingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResalePurchaseRequest'
+      responses:
+        '201':
+          description: Билет успешно куплен с перепродажи
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResaleTransaction'
+        '400':
+          description: Неверный запрос или билет недоступен
+        '402':
+          description: Ошибка оплаты
+
+  /users/{userId}/listings:
+    get:
+      summary: Получить все объявления пользователя
+      operationId: getUserListings
+      tags:
+        - Resale
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, RESERVED, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: Список объявлений пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Listing'
+
+  # ==================== TRANSACTIONS ====================
+  /transactions/resale/{transactionId}:
+    get:
+      summary: Получить детали транзакции перепродажи
+      operationId: getResaleTransaction
+      tags:
+        - Transactions
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Детали транзакции
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResaleTransaction'
+        '404':
+          description: Транзакция не найдена
+
+  /users/{userId}/transactions:
+    get:
+      summary: Получить историю транзакций пользователя
+      operationId: getUserTransactions
+      tags:
+        - Transactions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [PURCHASE, RESALE]
+      responses:
+        '200':
+          description: История транзакций
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+# ==================== COMPONENTS ====================
+components:
+  schemas:
+    Match:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        homeTeam:
+          type: string
+          example: FC Barcelona
+        awayTeam:
+          type: string
+          example: Real Madrid
+        date:
+          type: string
+          format: date-time
+          example: '2025-12-25T20:00:00Z'
+        venue:
+          type: string
+          example: Camp Nou
+        totalTickets:
+          type: integer
+          example: 50000
+        availableTickets:
+          type: integer
+          example: 12500
+        basePrice:
+          type: number
+          format: float
+          example: 55.00
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        matchId:
+          type: string
+          format: uuid
+        originalOwnerId:
+          type: string
+          format: uuid
+          description: ID первоначального покупателя
+        currentOwnerId:
+          type: string
+          format: uuid
+          description: ID текущего владельца
+        seatNumber:
+          type: string
+          example: A12
+        originalPrice:
+          type: number
+          format: float
+          example: 55.00
+        status:
+          type: string
+          enum: [AVAILABLE, RESERVED, SOLD, FOR_RESALE, RESOLD_RESERVED, RESOLD, CANCELLED]
+        isResalable:
+          type: boolean
+          description: Может ли билет быть перепродан
+        resaleCount:
+          type: integer
+          description: Количество перепродаж
+          example: 0
+        purchasedAt:
+          type: string
+          format: date-time
+
+    TicketPurchaseRequest:
+      type: object
+      required:
+        - matchId
+        - seatNumber
+        - paymentToken
+      properties:
+        matchId:
+          type: string
+          format: uuid
+          description: ID матча для покупки билета
+        seatNumber:
+          type: string
+          description: Желаемый номер места
+        paymentToken:
+          type: string
+          description: Токен оплаты от платежного шлюза
+
+    Listing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ticketId:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        resalePrice:
+          type: number
+          format: float
+          example: 75.00
+          description: Цена перепродажи
+        listingStatus:
+          type: string
+          enum: [ACTIVE, RESERVED, COMPLETED, CANCELLED]
+        description:
+          type: string
+          example: Не могу посетить матч, продаю билет
+        commission:
+          type: number
+          format: float
+          example: 7.50
+          description: Комиссия платформы
+        listedAt:
+          type: string
+          format: date-time
+        soldAt:
+          type: string
+          format: date-time
+          nullable: true
+        ticket:
+          $ref: '#/components/schemas/Ticket'
+
+    CreateListingRequest:
+      type: object
+      required:
+        - ticketId
+        - resalePrice
+      properties:
+        ticketId:
+          type: string
+          format: uuid
+          description: ID билета для перепродажи
+        resalePrice:
+          type: number
+          format: float
+          description: Желаемая цена перепродажи
+        description:
+          type: string
+          description: Описание объявления
+
+    UpdateListingRequest:
+      type: object
+      properties:
+        resalePrice:
+          type: number
+          format: float
+          description: Новая цена перепродажи
+        description:
+          type: string
+          description: Обновленное описание
+
+    ResalePurchaseRequest:
+      type: object
+      required:
+        - paymentToken
+      properties:
+        paymentToken:
+          type: string
+          description: Токен оплаты от платежного шлюза
+
+    ResaleTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        listingId:
+          type: string
+          format: uuid
+        buyerId:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        ticketId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+          description: Сумма перепродажи
+        commission:
+          type: number
+          format: float
+          description: Комиссия платформы
+        sellerPayout:
+          type: number
+          format: float
+          description: Выплата продавцу (amount - commission)
+        transactionDate:
+          type: string
+          format: date-time
+        paymentStatus:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED, REFUNDED]
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [PURCHASE, RESALE]
+        amount:
+          type: number
+          format: float
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

@@ -1,0 +1,26 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+TITLE Система продажи и перепродажи билетов на футбол - Контекст (C4 Уровень 1)
+
+Person(buyer, "Покупатель", "Просматривает матчи, покупает и перепродает билеты.")
+Person(seller, "Продавец", "Выставляет купленные билеты на перепродажу.")
+Person(admin, "Администратор", "Управляет расписанием матчей и системой.")
+
+System(ticketSystem, "Система продажи и перепродажи билетов", "Онлайн-платформа для покупки и перепродажи билетов на футбольные матчи.")
+
+System_Ext(paymentGateway, "Платежный шлюз", "Обрабатывает кредитные карты и платежи между пользователями.")
+System_Ext(emailService, "Сервис Email-уведомлений", "Отправляет подтверждения и уведомления.")
+System_Ext(matchDataProvider, "Поставщик данных о матчах", "Предоставляет расписание и информацию о матчах.")
+
+Rel(buyer, ticketSystem, "Покупает билеты")
+Rel(seller, ticketSystem, "Перепродает билеты")
+Rel(admin, ticketSystem, "Управляет системой")
+
+Rel(ticketSystem, paymentGateway, "Обрабатывает платежи через", "JSON/HTTPS")
+Rel(ticketSystem, emailService, "Отправляет уведомления через", "JSON/HTTPS")
+Rel(ticketSystem, matchDataProvider, "Получает данные о матчах от", "JSON/HTTPS")
+
+@enduml
